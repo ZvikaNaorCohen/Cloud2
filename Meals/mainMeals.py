@@ -1,7 +1,12 @@
+import json
+import requests
+# The following 3 lines are required for importing mainDiets.py
+# import sys
+# sys.path.append('../Diets')
+# import mainDiets
 from flask import Flask, request, jsonify, make_response
 from collections import OrderedDict
-import requests
-import json
+
 
 app = Flask(__name__)
 
@@ -395,6 +400,28 @@ def create_specific_meal_dict(meal):
     new_dict["sugar"] = sugar_sum
 
     return new_dict
+
+
+@app.get('/meals?diet=<name>')
+def get_json_diet_conform_meals():
+    combined_json = {}
+    conform_meals_index = 0
+    diet_name = request.args.get('diet')
+    for index in enumerate(meals_list):
+        if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
+            meal = meals_dict[int(index)]
+            if check_if_conform_diet(diet_name, meal):
+                combined_json[str(conform_meals_index)] = meal
+                conform_meals_index += 1
+    return json.dumps(combined_json, indent=4)
+
+
+def check_if_conform_diet(diet_name, meal):
+    diet = mainDiets.diets_json_arr[diet_name] # import mainDiets is needed
+    if meal['cal'] <= diet.cal and meal['sodium'] <= diet.sodium and meal['sugar'] <= diet.sugar:
+        return True
+    else:
+        return False
 
 
 @app.delete('/meals/<id_or_name>')

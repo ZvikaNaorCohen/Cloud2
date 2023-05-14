@@ -12,11 +12,13 @@ diets_json_arr = []
 def insert_to_diets_arr(dish):
     diets_json_arr.append(dish)
 
+
 def return_diets_arr():
     result = []
     for i, diet in enumerate(diets_json_arr):
         result.append({"_id": i, "diet": diet})
     return json.dumps(result)
+
 
 @app.post('/diets')
 def add_diet():
@@ -29,14 +31,17 @@ def add_diet():
     index = diets_json_arr.index(data)
     return make_response(jsonify(index), 201)
 
+
 @app.get('/diets')
 def get_diets():
     return make_response(return_diets_arr(), 200)
 
+
 @app.get('/diets/<diet_name>')
 def get_specific_diet(diet_name):
     try:
-        diet_obj = next(diet for diet in diets_json_arr if diet['name'] == diet_name)
+        diet_obj = next(
+            diet for diet in diets_json_arr if diet['name'] == diet_name)
         return json.dumps(diet_obj, indent=4)
 
     except StopIteration:
