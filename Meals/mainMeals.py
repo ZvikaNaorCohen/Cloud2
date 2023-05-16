@@ -1,11 +1,12 @@
 import json
 import requests
-# The following 3 lines are required for importing mainDiets.py
-# import sys
-# sys.path.append('../Diets')
-# import mainDiets
+import logging
 from flask import Flask, request, jsonify, make_response
 from collections import OrderedDict
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 app = Flask(__name__)
@@ -241,17 +242,40 @@ def add_meal():
 
 @app.get('/meals')
 def get_json_all_meals():
+    diet_name = request.args.get('diet')
     combined_json = {}
-    for index, meal_name in enumerate(meals_list):
-        if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
-            meal = meals_dict[int(index)]
-            new_dict = create_specific_meal_dict(meal)
-            if new_dict == {}:
-                return make_response(jsonify(-4), 400)
-            elif new_dict:
-                combined_json[str(index)] = new_dict
 
+    if diet_name is None:
+        for index, meal_name in enumerate(meals_list):
+            if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
+                meal = meals_dict[int(index)]
+                new_dict = create_specific_meal_dict(meal)
+                if new_dict == {}:
+                    return make_response(jsonify(-4), 400)
+                elif new_dict:
+                    combined_json[str(index)] = new_dict
+
+    else:
+        conform_meals_index = 0
+        diets_arr = requests.get('http://localhost:8005/diets').json()
+
+        for diet in diets_arr:
+            if diet['diet']['name'] == diet_name:
+                break
+
+        for index, meal_name in enumerate(meals_list):
+            if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
+                meal = meals_dict[int(index)]
+                specific_meal = create_specific_meal_dict(meal)
+                if specific_meal == {}:
+                    return make_response(jsonify(-4), 400)
+                elif check_if_conform_diet(diet['diet'], specific_meal):
+                    combined_json[str(conform_meals_index)] = specific_meal
+                    conform_meals_index += 1
+                    
+    # logger.info(f"combined_json: {combined_json}")
     return json.dumps(combined_json, indent=4)
+
 
 
 def check_for_errors_in_meals(data):
@@ -402,23 +426,8 @@ def create_specific_meal_dict(meal):
     return new_dict
 
 
-@app.get('/meals?diet=<name>')
-def get_json_diet_conform_meals():
-    combined_json = {}
-    conform_meals_index = 0
-    diet_name = request.args.get('diet')
-    for index in enumerate(meals_list):
-        if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
-            meal = meals_dict[int(index)]
-            if check_if_conform_diet(diet_name, meal):
-                combined_json[str(conform_meals_index)] = meal
-                conform_meals_index += 1
-    return json.dumps(combined_json, indent=4)
-
-
-def check_if_conform_diet(diet_name, meal):
-    diet = mainDiets.diets_json_arr[diet_name] # import mainDiets is needed
-    if meal['cal'] <= diet.cal and meal['sodium'] <= diet.sodium and meal['sugar'] <= diet.sugar:
+def check_if_conform_diet(diet, meal):
+    if float(meal['cal']) <= float(diet['cal']) and float(meal['sodium']) <= float(diet['sodium']) and float(meal['sugar']) <= float(diet['sugar']):
         return True
     else:
         return False
