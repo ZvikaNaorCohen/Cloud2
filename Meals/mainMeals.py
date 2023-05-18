@@ -3,15 +3,30 @@ import requests
 import logging
 from flask import Flask, request, jsonify, make_response
 from collections import OrderedDict
+from pymongo import MongoClient
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
 app = Flask(__name__)
 
 naor_api = 'DhpS7Wzw0QSQ3UlBWFYxHw==117Elk5BjCVfTjoM'
+
+client = MongoClient("mongodb://mongo:27017/")
+db = client["Cloud2_DB"]
+dishes_collection = db["Dishes"]
+meals_collection = db["Meals"]
+diets_collection = db["Diets"]
+
+# logger.info(f"combined_json: {combined_json}")
+diets_collection.insert_one({"_id": 1, "name": "diet1"})
+meals_collection.insert_one({"_id": 1, "name": "meal1"})
+dishes_collection.insert_one({"_id": 1, "name": "dish1"})
+
+diets_collection.insert_one({"_id": 2, "name": "diet2"})
+meals_collection.insert_one({"_id": 2, "name": "meal2"})
+dishes_collection.insert_one({"_id": 2, "name": "dish2"})
 
 # Python list
 dishes_list = [{}]
@@ -272,10 +287,9 @@ def get_json_all_meals():
                 elif check_if_conform_diet(diet['diet'], specific_meal):
                     combined_json[str(conform_meals_index)] = specific_meal
                     conform_meals_index += 1
-                    
+
     # logger.info(f"combined_json: {combined_json}")
     return json.dumps(combined_json, indent=4)
-
 
 
 def check_for_errors_in_meals(data):
@@ -499,4 +513,4 @@ def change_meal(meal_id, new_meal):
     meals_dict[meal_id]["dessert"] = new_meal['dessert']
 
 
-app.run(host="localhost", port=8000, debug=True)
+app.run(host="localhost", port=8000, debug=True, use_reloader=False)

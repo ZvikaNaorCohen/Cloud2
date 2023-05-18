@@ -9,6 +9,7 @@ naor_api = 'DhpS7Wzw0QSQ3UlBWFYxHw==117Elk5BjCVfTjoM'
 
 diets_json_arr = []
 
+
 def insert_to_diets_arr(dish):
     diets_json_arr.append(dish)
 
@@ -48,4 +49,4 @@ def get_specific_diet(diet_name):
         return make_response(jsonify(-5), 404)
 
 
-app.run(host="localhost", port=8005, debug=True)
+app.run(host="localhost", port=8005, debug=True, use_reloader=False)

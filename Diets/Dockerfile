@@ -1,14 +1,13 @@
 FROM python:alpine3.17
-WORKDIR /Cloud2/Meals
-COPY mainMeals.py .
+WORKDIR /Cloud2/Diets
+COPY mainDiets.py .
 RUN pip install flask
 RUN pip install flask_restful
 RUN pip install requests
 RUN pip install jsonify
 RUN pip install make_response
 RUN pip install OrderedDict
-RUN pip install pymongo
-EXPOSE 8000
-ENV FLASK_APP=mainMeals.py
-ENV FLASK_RUN_PORT=8000
+EXPOSE 8005
+ENV FLASK_APP=mainDiets.py
+ENV FLASK_RUN_PORT=8005
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]
