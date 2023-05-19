@@ -49,4 +49,4 @@ def get_specific_diet(diet_name):
         return make_response(jsonify(-5), 404)
 
 
-app.run(host="localhost", port=8005, debug=True, use_reloader=False)
+app.run(host="localhost", port=5002, debug=True, use_reloader=False)

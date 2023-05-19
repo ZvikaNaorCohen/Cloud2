@@ -8,7 +8,7 @@ RUN pip install jsonify
 RUN pip install make_response
 RUN pip install OrderedDict
 RUN pip install pymongo
-EXPOSE 8000
+EXPOSE 5001
 ENV FLASK_APP=mainMeals.py
-ENV FLASK_RUN_PORT=8000
+ENV FLASK_RUN_PORT=5001
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]

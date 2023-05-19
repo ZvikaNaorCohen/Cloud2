@@ -34,7 +34,7 @@ meals_list = [{}]
 meals_dict = [{}]
 
 
-def check_if_name_exists_in_list(name):
+def check_if_name_exists_in_list(name): # May not be needed
     if name in dishes_list:
         return True
     return False
@@ -513,4 +513,4 @@ def change_meal(meal_id, new_meal):
     meals_dict[meal_id]["dessert"] = new_meal['dessert']
 
 
-app.run(host="localhost", port=8000, debug=True, use_reloader=False)
+app.run(host="localhost", port=5001, debug=True, use_reloader=False)

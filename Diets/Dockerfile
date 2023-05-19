@@ -7,7 +7,7 @@ RUN pip install requests
 RUN pip install jsonify
 RUN pip install make_response
 RUN pip install OrderedDict
-EXPOSE 8005
+EXPOSE 5002
 ENV FLASK_APP=mainDiets.py
-ENV FLASK_RUN_PORT=8005
+ENV FLASK_RUN_PORT=5002
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0"]

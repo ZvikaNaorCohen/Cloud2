@@ -20,7 +20,7 @@ services:
       #         It's recommended to use these environment variables and set a secure password when deploying MongoDB in production environments. 
       #         However, during development or testing, you may choose to omit these lines or use default values.
     ports:
-      - "8000:8000"  # host:container
+      - "5001:5001"  # host:container
     depends_on:
       - mongo
 
@@ -38,16 +38,17 @@ services:
 #      MONGO_INITDB_ROOT_USERNAME: root
 #      MONGO_INITDB_ROOT_PASSWORD: rootpassword
     ports:
-      - "8005:8005"  # host:container
+      - "5002:5002"  # host:container
     depends_on:
       - mongo    
 
-#   reverse:
-#     build: ./reverse
-#     ports:
-#       - "80:80"  # host:container
-#     depends_on: # website is not going to work unless these services are running.
-#       - word-service
+  reverse:
+    build: ./reverse
+    ports:
+      - "80:80"  # host:container
+    depends_on: # website is not going to work unless these services are running.
+      - meals
+      - diets
 
   mongo:
     image: mongo
