@@ -36,7 +36,16 @@ if dishes_collection.find_one({"_id": 0}) is None:
     dishes_collection.insert_one({"_id": 0, "cur_key": 0})
     print("Inserted document containing cur_key with _id == 0 into the collection")
     sys.stdout.flush()
-
+if meals_collection.find_one({"_id": 0}) is None:
+    # insert a document into the database to have one "_id" index that starts at 0 and a field named "cur_key"
+    meals_collection.insert_one({"_id": 0, "cur_key": 0})
+    print("Inserted document containing cur_key with _id == 0 into the collection")
+    sys.stdout.flush()
+if diets_collection.find_one({"_id": 0}) is None:
+    # insert a document into the database to have one "_id" index that starts at 0 and a field named "cur_key"
+    diets_collection.insert_one({"_id": 0, "cur_key": 0})
+    print("Inserted document containing cur_key with _id == 0 into the collection")
+    sys.stdout.flush()
 
 # Python list
 dishes_list = [{}]
@@ -44,9 +53,8 @@ meals_list = [{}]
 meals_dict = [{}]
 
 
-def check_if_name_exists_in_dishes_db(name):  # May not be needed
-    print("Checking if", name, "exists in the database")
-    doc = dishes_collection.find_one({"value.name": name})
+def check_if_name_exists_in_dishes_db(name):
+    doc = dishes_collection.find_one({"name": name})
     if doc is not None:
         print(name + " already exists in Mongo with key " +
               str(doc["_id"]))
@@ -111,7 +119,6 @@ def add_dish():
 
     data = request.get_json()
     response = check_for_errors(data)
-    print(response)
     # "None" means no errors in the previous checks.
     if response is not None:
         return response
@@ -125,7 +132,6 @@ def add_dish():
     #     sys.stdout.flush()
     #     return dish_name + " already exists in Mongo with key " + str(doc["_id"]), 404
 
-    ################################
     detailed_dish = {}
     api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
         dish_name)
@@ -143,137 +149,37 @@ def add_dish():
 
         if len(json_dict) == 2:
             detailed_dish = show_only_requested_json_keys_for_combined_dish(
-                dish_name, json_dict[0], json_dict[1], cur_key)
+                dish_name, json_dict[0], json_dict[1])
         elif len(json_dict) == 1:
             detailed_dish = show_only_requested_json_keys(
-                json_dict[0], cur_key)
+                json_dict[0])
 
-        result = dishes_collection.insert_one(
-            {"_id": cur_key, "value": detailed_dish})
-        print("inserted " + dish_name +
-              " into mongo with ID " + str(result.inserted_id))
+        dishes_collection.insert_one(
+            {"_id": cur_key, "name": detailed_dish["name"], "cal": detailed_dish["cal"], "size": detailed_dish["size"],
+             "sodium": detailed_dish["sodium"], "sugar": detailed_dish["sugar"]})
+        print("inserted the dish " + dish_name +
+              " into mongo with ID " + str(cur_key))
+        sys.stdout.flush()
 
-    ########################################################################
+        return make_response(jsonify(cur_key), 201)
 
-    # # doc containing cur_key has the value of 0 for its "_id" field
-    # docID = {"_id": 0}
-    # # retrieve the doc with "_id" value = 0 and extract the "cur_key" value from it and increment its value
-    # cur_key = dishes_collection.find_one(docID)["cur_key"] + 1
-    # # set the "cur_key" field of the doc that meets the docID constraint to the updated value cur_key
-    # result = dishes_collection.update_one(
-    #     docID, {"$set": {"cur_key": cur_key}})
-    # result = dishes_collection.insert_one(
-    #     {"_id": cur_key, "value": detailed_dish})
-    # print("inserted " + dish_name +
-    #       " into mongo with ID " + str(result.inserted_id))
-    sys.stdout.flush()
+    return make_response(jsonify(-4), 400)
 
-    ########################################################################
-    # dishes_list.append(dish_name)
-    # index = dishes_list.index(dish_name)
-
-    # print("inserted " + dish_name +
-    #       " into mongo with ID " + str(result.inserted_id))
-    # return make_response(jsonify(index), 201)
-    return make_response(jsonify(cur_key), 201)
-
-
-# @app.get('/dishes')
-# def get_json_all_dishes():
-#     combined_json = {}
-#     for index, dish_name in enumerate(dishes_list):
-#         if index > 0:
-#             api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
-#                 dish_name)
-#             response = requests.get(
-#                 api_url, headers={'X-Api-Key': naor_api})
-#             json_dict = response.json()
-#             print(json_dict)
-#             if json_dict != {'message': 'Internal server error'} and 'message' not in json_dict and isinstance(json_dict, list):
-#                 if len(json_dict) == 2:
-#                     combined_json[str(index)] = show_only_requested_json_keys_for_combined_dish(
-#                         dish_name, json_dict[0], json_dict[1])
-#                 elif len(json_dict) == 1:
-#                     combined_json[str(index)] = show_only_requested_json_keys(
-#                         json_dict[0])
-#             else:
-#                 return make_response(jsonify(-4), 400)
-
-#     return json.dumps(combined_json, indent=4)
 
 @app.get('/dishes')
 def get_json_all_dishes():
-    combined_json = {}
-    for index, dish_name in enumerate(dishes_list):
-        if index > 0:
-            api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
-                dish_name)
-            response = requests.get(
-                api_url, headers={'X-Api-Key': naor_api})
-            json_dict = response.json()
-            print(json_dict)
-            if json_dict != {'message': 'Internal server error'} and 'message' not in json_dict and isinstance(json_dict, list):
-                if len(json_dict) == 2:
-                    combined_json[str(index)] = show_only_requested_json_keys_for_combined_dish(
-                        dish_name, json_dict[0], json_dict[1])
-                elif len(json_dict) == 1:
-                    combined_json[str(index)] = show_only_requested_json_keys(
-                        json_dict[0])
-            else:
-                return make_response(jsonify(-4), 400)
+    cursor = dishes_collection.find({"_id": {"$gte": 1}})
+    # !! need to check for error
+    print("mongo retrieved all dishes")
+    cursor_list = list(cursor)  # convert cursor object into list
+    print("List of dishes:")
+    for cursor in cursor_list:
+        print(cursor["name"])
+    sys.stdout.flush()
+    # convert list to JSON array
+    cursor_json = json.dumps(cursor_list, indent=4)
+    return cursor_json, 200
 
-    return json.dumps(combined_json, indent=4)
-
-################################################################
-
-
-# def get_all():
-#     cursor = diets_collection.find({"_id": {"$gte": 1}})
-#     print("list of all diets:")
-#     sys.stdout.flush()
-#     if cursor is not None:   # iterate over cursor.   one you iterate, the cursor is at the end of the list
-#         for doc in cursor:
-#             print(doc)
-#             sys.stdout.flush()
-#             dish_name = doc["name"]
-#             api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(dish_name)
-#             response = requests.get(
-#                 api_url, headers={'X-Api-Key': naor_api})
-#             json_dict = response.json()
-#             print(json_dict)
-
-#             if json_dict != {'message': 'Internal server error'} and 'message' not in json_dict and isinstance(json_dict, list):
-#                 if len(json_dict) == 2:
-#                     combined_json[str(index)] = show_only_requested_json_keys_for_combined_dish(
-#                         dish_name, json_dict[0], json_dict[1])
-#                 elif len(json_dict) == 1:
-#                     combined_json[str(index)] = show_only_requested_json_keys(
-#                         json_dict[0])
-#             else:
-#                 return make_response(jsonify(-4), 400)
-
-
-#     # !! need to check for error
-
-
-#     print("mongo retrieved all diets")
-#     # online info:
-#     # you can perform a find() query on a collection and get a cursor object. you can then iterate over the
-#     # cursor & do something with each document (e.g., just print it). After you're finished iterating over the
-#     # cursor, you call the rewind() method to reset the cursor to the beginning of the result set. You can then iterate
-#     # over the cursor again and do something else with each document.
-#     # Note that rewinding a cursor can be an expensive operation if there are a large number of documents in the result
-#     # set, because it requires the server to re-execute the query.  For this reason, it's generally a good practice to
-#     # try to avoid rewinding cursors if possible, and instead process the result set in a single pass.
-#     cursor.rewind()
-#     cursor_list = list(cursor)    # convert cursor object into list
-#     print("list(cursor) =")
-#     print(cursor_list)
-#     sys.stdout.flush()
-#     cursor_json = json.dumps(cursor_list)     # convert list to JSON array
-#     return cursor_json, 200
-
-################################################################
 
 @app.get('/dishes/<id_or_name>')
 def get_specific_dish(id_or_name):
@@ -281,6 +187,25 @@ def get_specific_dish(id_or_name):
         return get_dish_by_id(id_or_name)
     else:
         return get_dish_by_name(id_or_name)
+
+
+def get_dish_by_id(dish_id):
+    dish_id = int(dish_id)
+    docID = {"_id": 0}
+    cur_key = dishes_collection.find_one(docID)["cur_key"]
+    dish = dishes_collection.find_one({"_id": dish_id})
+    if dish_id == 0 or dish_id > cur_key or dish is None:
+        return make_response(jsonify(-5), 404)
+    else:
+        return json.dumps(dish, indent=4)
+
+
+def get_dish_by_name(name):
+    dish = dishes_collection.find_one({"name": name})
+    if dish is None:
+        return make_response(jsonify(-5), 404)
+    else:
+        return json.dumps(dish, indent=4)
 
 
 @app.get('/dishes/')
@@ -303,40 +228,24 @@ def delete_specific_dish(id_or_name):
 
 def delete_dish_by_id(dish_id):
     dish_id = int(dish_id)
-    if dish_id == 0 or dish_id >= len(dishes_list) or dishes_list[dish_id] == {}:
+    docID = {"_id": 0}
+    cur_key = dishes_collection.find_one(docID)["cur_key"]
+    dish = dishes_collection.find_one({"_id": dish_id})
+    if dish_id == 0 or dish_id > cur_key or dish is None:
         return make_response(jsonify(-5), 404)
     else:
-        # del dishes_list[dish_id]
-        dishes_list[dish_id] = {}
+        dishes_collection.delete_one({"_id": dish_id})
         return jsonify(dish_id)
 
 
 def delete_dish_by_name(dish_name):
-    try:
-        index_of_dish = dishes_list.index(dish_name)
-        # del dishes_list[index_of_dish]
-        dishes_list[index_of_dish] = {}
-        return jsonify(index_of_dish)
-    except ValueError:
-        return make_response(jsonify(-5), 404)
-
-
-def get_dish_by_id(dish_id):
-    dish_id = int(dish_id)
-    if dish_id == 0 or dish_id >= len(dishes_list) or dishes_list[dish_id] == {}:
+    dish = dishes_collection.find_one({"name": dish_name})
+    if dish is None:
         return make_response(jsonify(-5), 404)
     else:
-        dict_for_json = get_dictionary_for_json(dish_id)
-        return json.dumps(dict_for_json, indent=4)
-
-
-def get_dish_by_name(name):
-    try:
-        index_of_dish = dishes_list.index(name)
-        dict_for_json = get_dictionary_for_json(index_of_dish)
-        return json.dumps(dict_for_json, indent=4)
-    except ValueError:
-        return make_response(jsonify(-5), 404)
+        dish_id = dish["_id"]
+        dishes_collection.delete_one({"name": dish_name})
+        return jsonify(dish_id)
 
 
 def get_dictionary_for_json(dish_index):
@@ -348,22 +257,19 @@ def get_dictionary_for_json(dish_index):
     return show_only_requested_json_keys(json_dict[0])
 
 
-def show_only_requested_json_keys(original_dict, dish_id):
+def show_only_requested_json_keys(original_dict):
     new_dict = OrderedDict()
     new_dict["name"] = original_dict["name"]
-    new_dict["ID"] = dish_id
     new_dict["cal"] = original_dict["calories"]
     new_dict["size"] = original_dict["serving_size_g"]
     new_dict["sodium"] = original_dict["sodium_mg"]
     new_dict["sugar"] = original_dict["sugar_g"]
-
     return new_dict
 
 
-def show_only_requested_json_keys_for_combined_dish(original_name, first_meal_dict, second_meal_dict, dish_id):
+def show_only_requested_json_keys_for_combined_dish(original_name, first_meal_dict, second_meal_dict):
     new_dict = OrderedDict()
     new_dict["name"] = original_name
-    new_dict["ID"] = dish_id
     new_dict["cal"] = first_meal_dict["calories"] + \
         second_meal_dict["calories"]
     new_dict["size"] = first_meal_dict["serving_size_g"] + \
@@ -372,7 +278,6 @@ def show_only_requested_json_keys_for_combined_dish(original_name, first_meal_di
         second_meal_dict["sodium_mg"]
     new_dict["sugar"] = first_meal_dict["sugar_g"] + \
         second_meal_dict["sugar_g"]
-
     return new_dict
 
 
@@ -387,14 +292,23 @@ def add_meal():
 
     data = request.get_json()
     response = check_for_errors_in_meals(data)
+
     if response is not None:
         return response
 
     meal_name = data['name']
-    meals_list.append(meal_name)
-    index = meals_list.index(meal_name)
-    meals_dict.append(data)
-    return make_response(jsonify(index), 201)
+    meal = create_specific_meal_dict(data)
+    docID = {"_id": 0}
+    cur_key = meals_collection.find_one(docID)["cur_key"] + 1
+    meals_collection.update_one(docID, {"$set": {"cur_key": cur_key}})
+    meals_collection.insert_one(
+        {"_id": cur_key, "name": meal_name, "appetizer": meal.get("appetizer"), "main": meal.get("main"),
+         "dessert": meal.get("dessert"), "cal": meal.get("cal"), "sodium": meal.get("sodium"), "sugar": meal.get("sugar")})
+    print("inserted the meal " + meal_name +
+          " into mongo with ID " + str(cur_key))
+    sys.stdout.flush()
+
+    return make_response(jsonify(cur_key), 201)
 
 
 @app.get('/meals')
@@ -443,7 +357,7 @@ def check_for_errors_in_meals(data):
         output = make_response(jsonify(-1), 400)
         return output
 
-    name_exists_in_list = check_if_name_exists_in_meals_list(data['name'])
+    name_exists_in_list = check_if_name_exists_in_meals_db(data['name'])
     if name_exists_in_list is True:
         output = make_response(jsonify(-2), 400)
         return output
@@ -452,69 +366,56 @@ def check_for_errors_in_meals(data):
     main_id = int(data['main'])
     dessert_id = int(data['dessert'])
 
-    if check_if_dish_in_list_by_id(appetizer_id) is False or check_if_dish_in_list_by_id(
-            main_id) is False or check_if_dish_in_list_by_id(dessert_id) is False:
+    if check_if_dish_in_db(appetizer_id) is False or check_if_dish_in_db(
+            main_id) is False or check_if_dish_in_db(dessert_id) is False:
         return make_response(jsonify(-5), 404)
 
-    appetizer = dishes_list[int(appetizer_id)]
-    main = dishes_list[int(main_id)]
-    dessert = dishes_list[int(dessert_id)]
-
-    if check_if_name_exists_in_dishes_db(appetizer) and check_if_name_exists_in_dishes_db(main) and check_if_name_exists_in_dishes_db(
-            dessert):
-        return None
-    else:
-        return make_response(jsonify(-5), 404)
+    return None
 
 
-def check_if_dish_in_list_by_id(dish_id):
+def check_if_dish_in_db(dish_id):
     dish_id = int(dish_id)
-    if dish_id == 0 or dish_id >= len(dishes_list) or dishes_list[dish_id] == {}:
+    docID = {"_id": 0}
+    cur_key = dishes_collection.find_one(docID)["cur_key"]
+    dish = dishes_collection.find_one({"_id": dish_id})
+    if dish_id == 0 or dish_id > cur_key or dish is None:
         return False
     return True
 
 
-def check_if_name_exists_in_meals_list(name):
-    if name in meals_list:
+def check_if_name_exists_in_meals_db(name):
+    doc = meals_collection.find_one({"name": name})
+    if doc is not None:
+        print(name + " already exists in Mongo with key " +
+              str(doc["_id"]))
+        sys.stdout.flush()
         return True
     return False
 
 # If one of the responses is 'Internal server error' return -1
 
 
+# def get_sum(param, appetizer_id, main_id, dessert_id):
+#     appetizer_param = dishes_collection.find_one({"_id": appetizer_id})[param]
+#     main_param = dishes_collection.find_one({"_id": main_id})[param]
+#     dessert_param = dishes_collection.find_one({"_id": dessert_id})[param]
+
+#     return appetizer_param + main_param + dessert_param
+
 def get_sum(param, appetizer_id, main_id, dessert_id):
-    api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
-        dishes_list[int(appetizer_id)])
-    appetizer_response = requests.get(
-        api_url, headers={'X-Api-Key': naor_api})
-    appetizer_json_dict = appetizer_response.json()
+    appetizer_doc = dishes_collection.find_one({"_id": appetizer_id})
+    main_doc = dishes_collection.find_one({"_id": main_id})
+    dessert_doc = dishes_collection.find_one({"_id": dessert_id})
 
-    if appetizer_json_dict == {'message': 'Internal server error'}:
+    if not appetizer_doc or not main_doc or not dessert_doc:
         return -1
 
-    appetizer_param = appetizer_json_dict[0][param]
+    appetizer_param = appetizer_doc.get(param)
+    main_param = main_doc.get(param)
+    dessert_param = dessert_doc.get(param)
 
-    api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
-        dishes_list[int(main_id)])
-    main_response = requests.get(
-        api_url, headers={'X-Api-Key': naor_api})
-    main_json_dict = main_response.json()
-
-    if main_json_dict == {'message': 'Internal server error'}:
+    if appetizer_param is None or main_param is None or dessert_param is None:
         return -1
-
-    main_param = main_json_dict[0][param]
-
-    api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
-        dishes_list[int(dessert_id)])
-    dessert_response = requests.get(
-        api_url, headers={'X-Api-Key': naor_api})
-    dessert_json_dict = dessert_response.json()
-
-    if dessert_json_dict == {'message': 'Internal server error'}:
-        return -1
-
-    dessert_param = dessert_json_dict[0][param]
 
     return appetizer_param + main_param + dessert_param
 
@@ -556,28 +457,24 @@ def get_meal_by_name(name):
 
 
 def create_specific_meal_dict(meal):
-    appetizer_id = meal["appetizer"]
-    main_id = meal["main"]
-    dessert_id = meal["dessert"]
-
-    cal_sum = get_sum("calories", appetizer_id, main_id, dessert_id)
-    sodium_sum = get_sum("sodium_mg", appetizer_id, main_id, dessert_id)
-    sugar_sum = get_sum("sugar_g", appetizer_id, main_id, dessert_id)
-
+    appetizer_id = int(meal["appetizer"])
+    main_id = int(meal["main"])
+    dessert_id = int(meal["dessert"])
+    cal_sum = get_sum("cal", appetizer_id, main_id, dessert_id)
+    sodium_sum = get_sum("sodium", appetizer_id, main_id, dessert_id)
+    sugar_sum = get_sum("sugar", appetizer_id, main_id, dessert_id)
     new_dict = OrderedDict()
 
     if cal_sum == -1 or sodium_sum == -1 or sugar_sum == -1:
         return new_dict
 
-    index_of_dish = meals_list.index(meal["name"])
     new_dict["name"] = meal["name"]
-    new_dict["ID"] = index_of_dish
-    new_dict["appetizer"] = appetizer_id
-    new_dict["main"] = main_id
-    new_dict["dessert"] = dessert_id
-    new_dict["cal"] = cal_sum
-    new_dict["sodium"] = sodium_sum
-    new_dict["sugar"] = sugar_sum
+    new_dict["appetizer"] = int(appetizer_id)
+    new_dict["main"] = int(main_id)
+    new_dict["dessert"] = int(dessert_id)
+    new_dict["cal"] = float(cal_sum)
+    new_dict["sodium"] = float(sodium_sum)
+    new_dict["sugar"] = float(sugar_sum)
 
     return new_dict
 
