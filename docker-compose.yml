@@ -21,6 +21,8 @@ services:
       #         However, during development or testing, you may choose to omit these lines or use default values.
     ports:
       - "5001:5001"  # host:container
+    expose:
+      - "5001"
     depends_on:
       - mongo
 
@@ -39,6 +41,8 @@ services:
 #      MONGO_INITDB_ROOT_PASSWORD: rootpassword
     ports:
       - "5002:5002"  # host:container
+    expose:
+      - "5002"
     depends_on:
       - mongo    
 

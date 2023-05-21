@@ -1,14 +1,9 @@
 import json
 import sys
 import requests
-import logging
 from flask import Flask, request, jsonify, make_response
 from collections import OrderedDict
 from pymongo import MongoClient
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -18,18 +13,6 @@ client = MongoClient("mongodb://mongo:27017/")
 db = client["Cloud2_DB"]
 dishes_collection = db["Dishes"]
 meals_collection = db["Meals"]
-diets_collection = db["Diets"]
-
-# logger.info(f"combined_json: {combined_json}")
-
-# Adding some object to the collections for testing purposes
-# diets_collection.insert_one({"_id": 1, "name": "diet1"})
-# meals_collection.insert_one({"_id": 1, "name": "meal1"})
-# dishes_collection.insert_one({"_id": 1, "name": "dish1"})
-# diets_collection.insert_one({"_id": 2, "name": "diet2"})
-# meals_collection.insert_one({"_id": 2, "name": "meal2"})
-# dishes_collection.insert_one({"_id": 2, "name": "dish2"})
-
 # first time starting up this service as no document with _id ==0 exists
 if dishes_collection.find_one({"_id": 0}) is None:
     # insert a document into the database to have one "_id" index that starts at 0 and a field named "cur_key"
@@ -41,16 +24,6 @@ if meals_collection.find_one({"_id": 0}) is None:
     meals_collection.insert_one({"_id": 0, "cur_key": 0})
     print("Inserted document containing cur_key with _id == 0 into the collection")
     sys.stdout.flush()
-if diets_collection.find_one({"_id": 0}) is None:
-    # insert a document into the database to have one "_id" index that starts at 0 and a field named "cur_key"
-    diets_collection.insert_one({"_id": 0, "cur_key": 0})
-    print("Inserted document containing cur_key with _id == 0 into the collection")
-    sys.stdout.flush()
-
-# Python list
-dishes_list = [{}]
-meals_list = [{}]
-meals_dict = [{}]
 
 
 def check_if_name_exists_in_dishes_db(name):
@@ -124,14 +97,6 @@ def add_dish():
         return response
 
     dish_name = data['name']
-
-    # doc = dishes_collection.find_one({"name": dish_name})
-    # if doc is not None:
-    #     print(dish_name + " already exists in Mongo with key " +
-    #           str(doc["_id"]))
-    #     sys.stdout.flush()
-    #     return dish_name + " already exists in Mongo with key " + str(doc["_id"]), 404
-
     detailed_dish = {}
     api_url = 'https://api.api-ninjas.com/v1/nutrition?query={}'.format(
         dish_name)
@@ -163,13 +128,15 @@ def add_dish():
 
         return make_response(jsonify(cur_key), 201)
 
+    elif json_dict == {'message': 'Internal server error'}:
+        return make_response(jsonify(-1), 400)
+
     return make_response(jsonify(-4), 400)
 
 
 @app.get('/dishes')
 def get_json_all_dishes():
     cursor = dishes_collection.find({"_id": {"$gte": 1}})
-    # !! need to check for error
     print("mongo retrieved all dishes")
     cursor_list = list(cursor)  # convert cursor object into list
     print("List of dishes:")
@@ -318,7 +285,6 @@ def get_json_all_meals():
 
     if diet_name is None:
         cursor = meals_collection.find({"_id": {"$gte": 1}})
-        # !! need to check for error
         print("mongo retrieved all meals")
         cursor_list = list(cursor)  # convert cursor object into list
         print("List of meals:")
@@ -331,20 +297,24 @@ def get_json_all_meals():
 
     else:
         conform_meals_index = 0
-        diets_arr = requests.get('http://localhost:5002/diets').json()
+        diets_list = requests.get('http://diets:5002/diets').json()
         diet_exists = False
-        for diet in diets_arr:
-            if diet['diet']['name'] == diet_name:
+
+        for diet in diets_list:
+            if diet['name'] == diet_name:
                 diet_exists = True
                 break
         if diet_exists:
             cursor = meals_collection.find({"_id": {"$gte": 1}})
-            # !! need to check for error
-            print("")
             cursor_list = list(cursor)  # convert cursor object into list
-            print("List of meals that conform the diet:")
+            print("mongo retrieved all meals that conform the diet")
+            print("List of meals:")
+            sys.stdout.flush()
+
             for cursor in cursor_list:
-                if check_if_conform_diet(diet['diet'], cursor):
+                if check_if_conform_diet(diet, cursor):
+                    print(cursor["name"])
+                    sys.stdout.flush()
                     conform_meals_list.append(cursor)
                     conform_meals_index += 1
 
@@ -397,8 +367,6 @@ def check_if_name_exists_in_meals_db(name):
         sys.stdout.flush()
         return True
     return False
-
-# If one of the responses is 'Internal server error' return -1
 
 
 def get_sum(param, appetizer_id, main_id, dessert_id):
@@ -488,22 +456,28 @@ def delete_specific_meal(id_or_name):
 
 def delete_meal_by_id(meal_id):
     meal_id = int(meal_id)
-    if meal_id == 0 or meal_id >= len(meals_list) or meals_list[meal_id] == {}:
+    docID = {"_id": 0}
+    cur_key = meals_collection.find_one(docID)["cur_key"]
+    meal = meals_collection.find_one({"_id": meal_id})
+    if meal_id == 0 or meal_id > cur_key or meal is None:
         return make_response(jsonify(-5), 404)
     else:
-        meals_list[meal_id] = {}
-        meals_dict[meal_id] = {}
+        meals_collection.delete_one({"_id": meal_id})
+        print("Deleted meal with ID: ", meal_id)
+        sys.stdout.flush()
         return jsonify(meal_id)
 
 
 def delete_meal_by_name(meal_name):
-    try:
-        index_of_meal = meals_list.index(meal_name)
-        meals_list[index_of_meal] = {}
-        meals_dict[index_of_meal] = {}
-        return jsonify(index_of_meal)
-    except ValueError:
+    meal = meals_collection.find_one({"name": meal_name})
+    if meal is None:
         return make_response(jsonify(-5), 404)
+    else:
+        meal_id = meal["_id"]
+        meals_collection.delete_one({"name": meal_name})
+        print("Deleted meal with ID: ", meal_id)
+        sys.stdout.flush()
+        return jsonify(meal_id)
 
 
 @app.get('/meals/')
@@ -518,8 +492,14 @@ def name_or_id_not_specified_delete_meals():
 
 @app.put('/meals/<meal_id>')
 def put_meal_new_details(meal_id):
-    if "0" <= str(meal_id[0]) <= "9" and len(meals_list) > int(meal_id) and meals_list[int(meal_id)] != {}:
-        meal_id = int(meal_id)
+    meal_id = int(meal_id)
+    docID = {"_id": 0}
+    cur_key = meals_collection.find_one(docID)["cur_key"]
+    meal = meals_collection.find_one({"_id": meal_id})
+    if meal_id == 0 or meal_id > cur_key or meal is None:
+        return make_response(jsonify(-1), 400)
+
+    else:
         content_type = request.headers.get('Content-Type')
         if content_type != 'application/json':
             return make_response(jsonify(0), 415)
@@ -530,18 +510,26 @@ def put_meal_new_details(meal_id):
             return response
 
         change_meal(meal_id, data)
+        print("Updated meal with ID: ", meal_id)
+        sys.stdout.flush()
 
         return make_response(jsonify(meal_id), 200)
-    else:
-        return make_response(jsonify(-1), 400)
 
 
 def change_meal(meal_id, new_meal):
-    meals_list[meal_id] = new_meal['name']
-    meals_dict[meal_id]["name"] = new_meal['name']
-    meals_dict[meal_id]["appetizer"] = new_meal['appetizer']
-    meals_dict[meal_id]["main"] = new_meal['main']
-    meals_dict[meal_id]["dessert"] = new_meal['dessert']
+    meal = create_specific_meal_dict(new_meal)
+    meals_collection.update_one(
+        {"_id": meal_id},
+        {"$set": {
+            "name": meal["name"],
+            "appetizer": meal["appetizer"],
+            "main": meal["main"],
+            "dessert": meal["dessert"],
+            "cal": meal["cal"],
+            "sodium": meal["sodium"],
+            "sugar": meal["sugar"]
+        }}
+    )
 
 
 app.run(host="localhost", port=5001, debug=True, use_reloader=False)

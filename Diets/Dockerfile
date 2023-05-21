@@ -7,6 +7,7 @@ RUN pip install requests
 RUN pip install jsonify
 RUN pip install make_response
 RUN pip install OrderedDict
+RUN pip install pymongo
 EXPOSE 5002
 ENV FLASK_APP=mainDiets.py
 ENV FLASK_RUN_PORT=5002
