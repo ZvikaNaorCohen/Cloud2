@@ -314,38 +314,44 @@ def add_meal():
 @app.get('/meals')
 def get_json_all_meals():
     diet_name = request.args.get('diet')
-    combined_json = {}
+    conform_meals_list = []
 
     if diet_name is None:
-        for index, meal_name in enumerate(meals_list):
-            if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
-                meal = meals_dict[int(index)]
-                new_dict = create_specific_meal_dict(meal)
-                if new_dict == {}:
-                    return make_response(jsonify(-4), 400)
-                elif new_dict:
-                    combined_json[str(index)] = new_dict
+        cursor = meals_collection.find({"_id": {"$gte": 1}})
+        # !! need to check for error
+        print("mongo retrieved all meals")
+        cursor_list = list(cursor)  # convert cursor object into list
+        print("List of meals:")
+        for cursor in cursor_list:
+            print(cursor["name"])
+            sys.stdout.flush()
+            # convert list to JSON array
+        cursor_json = json.dumps(cursor_list, indent=4)
+        return cursor_json, 200
 
     else:
         conform_meals_index = 0
-        diets_arr = requests.get('http://localhost:8005/diets').json()
-
+        diets_arr = requests.get('http://localhost:5002/diets').json()
+        diet_exists = False
         for diet in diets_arr:
             if diet['diet']['name'] == diet_name:
+                diet_exists = True
                 break
-
-        for index, meal_name in enumerate(meals_list):
-            if index != 0 and index <= len(meals_list) and meals_list[index] != {}:
-                meal = meals_dict[int(index)]
-                specific_meal = create_specific_meal_dict(meal)
-                if specific_meal == {}:
-                    return make_response(jsonify(-4), 400)
-                elif check_if_conform_diet(diet['diet'], specific_meal):
-                    combined_json[str(conform_meals_index)] = specific_meal
+        if diet_exists:
+            cursor = meals_collection.find({"_id": {"$gte": 1}})
+            # !! need to check for error
+            print("")
+            cursor_list = list(cursor)  # convert cursor object into list
+            print("List of meals that conform the diet:")
+            for cursor in cursor_list:
+                if check_if_conform_diet(diet['diet'], cursor):
+                    conform_meals_list.append(cursor)
                     conform_meals_index += 1
 
-    # logger.info(f"combined_json: {combined_json}")
-    return json.dumps(combined_json, indent=4)
+            cursor_json = json.dumps(conform_meals_list, indent=4)
+            return cursor_json, 200
+        else:
+            return make_response(jsonify("Diet " + diet_name + " not found"), 404)
 
 
 def check_for_errors_in_meals(data):
@@ -395,13 +401,6 @@ def check_if_name_exists_in_meals_db(name):
 # If one of the responses is 'Internal server error' return -1
 
 
-# def get_sum(param, appetizer_id, main_id, dessert_id):
-#     appetizer_param = dishes_collection.find_one({"_id": appetizer_id})[param]
-#     main_param = dishes_collection.find_one({"_id": main_id})[param]
-#     dessert_param = dishes_collection.find_one({"_id": dessert_id})[param]
-
-#     return appetizer_param + main_param + dessert_param
-
 def get_sum(param, appetizer_id, main_id, dessert_id):
     appetizer_doc = dishes_collection.find_one({"_id": appetizer_id})
     main_doc = dishes_collection.find_one({"_id": main_id})
@@ -430,28 +429,21 @@ def get_specific_meal(id_or_name):
 
 def get_meal_by_id(meal_id):
     meal_id = int(meal_id)
-    if meal_id == 0 or meal_id >= len(meals_list) or meals_list[meal_id] == {}:
+    docID = {"_id": 0}
+    cur_key = meals_collection.find_one(docID)["cur_key"]
+    meal = meals_collection.find_one({"_id": meal_id})
+    if meal_id == 0 or meal_id > cur_key or meal is None:
         return make_response(jsonify(-5), 404)
     else:
-        meal = meals_dict[int(meal_id)]
-        new_dict = create_specific_meal_dict(meal)
-        if new_dict:
-            dict_for_json = new_dict
-
-        return json.dumps(dict_for_json, indent=4)
+        return json.dumps(meal, indent=4)
 
 
-def get_meal_by_name(name):
-    try:
-        meal_id = meals_list.index(name)
-        meal = meals_dict[int(meal_id)]
-        new_dict = create_specific_meal_dict(meal)
-        if new_dict:
-            dict_for_json = new_dict
-        return json.dumps(dict_for_json, indent=4)
-
-    except ValueError:
+def get_meal_by_name(meal_name):
+    meal = meals_collection.find_one({"name": meal_name})
+    if meal is None:
         return make_response(jsonify(-5), 404)
+    else:
+        return json.dumps(meal, indent=4)
 
 # If one of the get_sum value is -1 return an empty list
 
