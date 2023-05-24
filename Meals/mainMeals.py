@@ -143,6 +143,9 @@ def get_json_all_dishes():
     for cursor in cursor_list:
         print(cursor["name"])
     sys.stdout.flush()
+
+    for cursor in cursor_list:
+        cursor.pop('_id', None)
     # convert list to JSON array
     cursor_json = json.dumps(cursor_list, indent=4)
     return cursor_json, 200
@@ -164,6 +167,7 @@ def get_dish_by_id(dish_id):
     if dish_id == 0 or dish_id > cur_key or dish is None:
         return make_response(jsonify(-5), 404)
     else:
+        dish.pop('_id', None)
         return json.dumps(dish, indent=4)
 
 
@@ -172,6 +176,7 @@ def get_dish_by_name(name):
     if dish is None:
         return make_response(jsonify(-5), 404)
     else:
+        dish.pop('_id', None)
         return json.dumps(dish, indent=4)
 
 
@@ -292,6 +297,8 @@ def get_json_all_meals():
             print(cursor["name"])
             sys.stdout.flush()
             # convert list to JSON array
+        for meal in cursor_list:
+            meal.pop('_id', None)
         cursor_json = json.dumps(cursor_list, indent=4)
         return cursor_json, 200
 
@@ -318,6 +325,8 @@ def get_json_all_meals():
                     conform_meals_list.append(cursor)
                     conform_meals_index += 1
 
+            for meal in conform_meals_list:
+                meal.pop('_id', None)
             cursor_json = json.dumps(conform_meals_list, indent=4)
             return cursor_json, 200
         else:
@@ -403,6 +412,7 @@ def get_meal_by_id(meal_id):
     if meal_id == 0 or meal_id > cur_key or meal is None:
         return make_response(jsonify(-5), 404)
     else:
+        meal.pop('_id', None)
         return json.dumps(meal, indent=4)
 
 
@@ -411,6 +421,7 @@ def get_meal_by_name(meal_name):
     if meal is None:
         return make_response(jsonify(-5), 404)
     else:
+        meal.pop('_id', None)
         return json.dumps(meal, indent=4)
 
 # If one of the get_sum value is -1 return an empty list

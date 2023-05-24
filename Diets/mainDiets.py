@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify, make_response
-from collections import OrderedDict
 from pymongo import MongoClient
-import requests
 import json
 import sys
 
