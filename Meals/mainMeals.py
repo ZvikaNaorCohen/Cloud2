@@ -274,8 +274,8 @@ def add_meal():
     cur_key = meals_collection.find_one(docID)["cur_key"] + 1
     meals_collection.update_one(docID, {"$set": {"cur_key": cur_key}})
     meals_collection.insert_one(
-        {"_id": cur_key, "name": meal_name, "ID": str(cur_key), "appetizer": meal.get("appetizer"), "main": meal.get("main"),
-         "dessert": meal.get("dessert"), "cal": meal.get("cal"), "sodium": meal.get("sodium"), "sugar": meal.get("sugar")})
+        {"_id": cur_key, "name": meal_name, "ID": str(cur_key), "appetizer": str(meal.get("appetizer")), "main": str(meal.get("main")),
+         "dessert": str(meal.get("dessert")), "cal": meal.get("cal"), "sodium": meal.get("sodium"), "sugar": meal.get("sugar")})
     print("inserted the meal " + meal_name +
           " into mongo with ID " + str(cur_key))
     sys.stdout.flush()
