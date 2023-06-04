@@ -1,0 +1,72 @@
+version: '3'  # version of compose format
+
+services:
+  meals:
+    build: ./Meals # path is relative to docker-compose-shorthand.yml location
+    restart: always   # possible values for restart are:  "no", always, on-failure, unless-stopped
+    volumes:
+      - type: bind
+        source: ./Meals # host directory
+        target: /Meals # container directory
+    environment:
+      # tells flask run to run in development mode and reload the code on change. This mode should only be used in
+      # development.
+      FLASK_DEBUG: "false"
+      # MONGO_INITDB_ROOT_USERNAME: root
+      # MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      #         When these environment variables are set, 
+      #         the MongoDB container will create a root user with the provided username and password during its initialization process. 
+      #         This allows you to secure the MongoDB instance and have administrative control over the database.
+      #         It's recommended to use these environment variables and set a secure password when deploying MongoDB in production environments. 
+      #         However, during development or testing, you may choose to omit these lines or use default values.
+    ports:
+      - "5001:5001"  # host:container
+    expose:
+      - "5001"
+    depends_on:
+      - mongo
+
+  diets:
+    build: ./Diets # path is relative to docker-compose-shorthand.yml location
+    restart: always   # possible values for restart are:  "no", always, on-failure, unless-stopped
+    volumes:
+      - type: bind
+        source: ./Diets # host directory
+        target: /Diets # container directory
+    environment:
+      # tells flask run to run in development mode and reload the code on change. This mode should only be used in
+      # development.
+      FLASK_DEBUG: "false"
+#      MONGO_INITDB_ROOT_USERNAME: root
+#      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "5002:5002"  # host:container
+    expose:
+      - "5002"
+    depends_on:
+      - mongo    
+
+  reverse:
+    build: ./reverse
+    ports:
+      - "80:80"  # host:container
+    depends_on: # website is not going to work unless these services are running.
+      - meals
+      - diets
+
+  # load_balancer:
+  #   image: nginx
+  #   ports:
+  #     - "5000:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf
+  #   depends_on:
+  #     - meals
+
+  mongo:
+    image: mongo
+    # environment:
+    #  MONGO_INITDB_ROOT_USERNAME: root
+    #  MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - 27017:27017
