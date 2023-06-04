@@ -13,7 +13,7 @@ client = MongoClient("mongodb://mongo:27017/")
 db = client["Cloud2_DB"]
 dishes_collection = db["Dishes"]
 meals_collection = db["Meals"]
-# first time starting up this service as no document with _id ==0 exists
+# first time starting up this service as no document with _id == 0 exists
 if dishes_collection.find_one({"_id": 0}) is None:
     # insert a document into the database to have one "_id" index that starts at 0 and a field named "cur_key"
     dishes_collection.insert_one({"_id": 0, "cur_key": 0})
@@ -423,8 +423,6 @@ def get_meal_by_name(meal_name):
     else:
         meal.pop('_id', None)
         return json.dumps(meal, indent=4)
-
-# If one of the get_sum value is -1 return an empty list
 
 
 def create_specific_meal_dict(meal):
